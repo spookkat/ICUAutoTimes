@@ -441,13 +441,18 @@ class Dataset_Preprocess(Dataset):
     def __getitem__(self, index):
         s_begin = index % self.tot_len
         s_end = s_begin + self.token_len
-        start = datetime.datetime.strptime(self.data_stamp[s_begin], "%Y-%m-%d %H:%M:%S")
-        if self.data_set_type in ['traffic', 'electricity', 'ETTh1', 'ETTh2']:
-            end = (start + datetime.timedelta(hours=self.token_len-1)).strftime("%Y-%m-%d %H:%M:%S")
-        elif self.data_set_type == 'weather':
-            end = (start + datetime.timedelta(minutes=10*(self.token_len-1))).strftime("%Y-%m-%d %H:%M:%S")
-        elif self.data_set_type in ['ETTm1', 'ETTm2']:
-            end = (start + datetime.timedelta(minutes=15*(self.token_len-1))).strftime("%Y-%m-%d %H:%M:%S")
+        if self.data_set_type not in ['0001_processed']:
+            start = datetime.datetime.strptime(self.data_stamp[s_begin], "%Y-%m-%d %H:%M:%S")
+            if self.data_set_type in ['traffic', 'electricity', 'ETTh1', 'ETTh2']:
+                end = (start + datetime.timedelta(hours=self.token_len-1)).strftime("%Y-%m-%d %H:%M:%S")
+            elif self.data_set_type == 'weather':
+                end = (start + datetime.timedelta(minutes=10*(self.token_len-1))).strftime("%Y-%m-%d %H:%M:%S")
+            elif self.data_set_type in ['ETTm1', 'ETTm2']:
+                end = (start + datetime.timedelta(minutes=15*(self.token_len-1))).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            #start = datetime.datetime.strptime(self.data_stamp[s_begin], "%Y-%m-%d %H:%M:%S.%f")
+            start = datetime.datetime.fromisoformat(self.data_stamp[s_begin])
+            end = (start + datetime.timedelta(microseconds=2000*(self.token_len-1))).strftime("%Y-%m-%d %H:%M:%S.%f%z")
         seq_x_mark = f"This is Time Series from {self.data_stamp[s_begin]} to {end}"
         return seq_x_mark
 

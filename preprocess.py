@@ -1,6 +1,7 @@
 import argparse
 import torch
-from models.Preprocess_Llama import Model
+from models.Preprocess_Llama import Model as Model_Llama
+from models.Preprocess_Gpt2 import Model as Model_GPT2
 
 from data_provider.data_loader import Dataset_Preprocess
 from torch.utils.data import DataLoader
@@ -8,19 +9,24 @@ from torch.utils.data import DataLoader
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='AutoTimes Preprocess')
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
+    parser.add_argument('--llm', type=str, default='llama', help='llm name')
     parser.add_argument('--llm_ckp_dir', type=str, default='./llama', help='llm checkpoints dir')
     parser.add_argument('--dataset', type=str, default='ETTh1', 
                         help='dataset to preprocess, options:[ETTh1, electricity, weather, traffic]')
     args = parser.parse_args()
     print(args.dataset)
     
-    model = Model(args)
+    model = None
+    if args.llm == 'llama':
+        model = Model_Llama(args)
+    elif args.llm == 'gpt2':
+        model = Model_GPT2(args)
 
     seq_len = 672
     label_len = 576
     pred_len = 96
     
-    assert args.dataset in ['ETTh1', 'electricity', 'weather', 'traffic']
+    assert args.dataset in ['ETTh1', 'electricity', 'weather', 'traffic', 'Test']
     if args.dataset == 'ETTh1':
         data_set = Dataset_Preprocess(
             root_path='./dataset/ETT-small/',
@@ -41,10 +47,16 @@ if __name__ == '__main__':
             root_path='./dataset/traffic/',
             data_path='traffic.csv',
             size=[seq_len, label_len, pred_len])
+    elif args.dataset == 'Test':
+        data_set = Dataset_Preprocess(
+            root_path='./dataset/Test/',
+            data_path='0001_processed.csv',
+            size=[seq_len, label_len, pred_len])
 
     data_loader = DataLoader(
         data_set,
-        batch_size=128,
+        #batch_size=128,
+        batch_size=1024,
         shuffle=False,
     )
 
