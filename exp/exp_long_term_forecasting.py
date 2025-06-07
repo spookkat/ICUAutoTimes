@@ -124,8 +124,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         for epoch in range(self.args.train_epochs):
             iter_count = 0
 
-            loss_val = torch.tensor(0., device="cuda")
-            count = torch.tensor(0., device="cuda")
+            loss_val = torch.tensor(0., device=self.device)
+            count = torch.tensor(0., device=self.device)
             
             self.model.train()
             epoch_time = time.time()
