@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from transformers.models.gpt2.modeling_gpt2 import GPT2Model
 from layers.mlp import MLP
+import sys
 
 class Model(nn.Module):
     def __init__(self, configs):
@@ -44,6 +45,8 @@ class Model(nn.Module):
         stdev = torch.sqrt(
             torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5)
         x_enc /= stdev
+
+        #print(x_enc.shape, x_mark_enc.shape)
         
         bs, _, n_vars = x_enc.shape
         # x_enc: [bs x nvars x seq_len]
@@ -52,21 +55,31 @@ class Model(nn.Module):
         x_enc = x_enc.reshape(x_enc.shape[0] * x_enc.shape[1], -1)
         # fold_out: [bs * n_vars x token_num x token_len]
         fold_out = x_enc.unfold(dimension=-1, size=self.token_len, step=self.token_len)
+        #print(fold_out.shape)
         token_num = fold_out.shape[1]
         # times_embeds: [bs * n_vars x token_num x hidden_dim_of_gpt2]
         times_embeds = self.encoder(fold_out)
+        #print(times_embeds.shape)
+        #print(self.add_scale, self.add_scale.shape)
         if self.mix:
             times_embeds = times_embeds / times_embeds.norm(dim=2, keepdim=True)
             x_mark_enc = x_mark_enc / x_mark_enc.norm(dim=2, keepdim=True)
+            #print(x_mark_enc.shape)
+            #sys.exit(0)
             times_embeds = times_embeds + self.add_scale * x_mark_enc
         # outputs: [bs * n_vars x token_num x hidden_dim_of_gpt2]
+        #print("Predicting")
+        #print(times_embeds.shape)
         outputs = self.gpt2(
             inputs_embeds=times_embeds).last_hidden_state
+        #print(outputs.shape)
         # dec_out: [bs * n_vars x token_num x token_len]
         dec_out = self.decoder(outputs)
         dec_out = dec_out.reshape(bs, n_vars, -1)
+        #print(dec_out.shape)
         # dec_out: [bs x token_num * token_len x n_vars]
         dec_out = dec_out.permute(0, 2, 1)
+        #print(dec_out.shape)
         
         dec_out = dec_out * \
             (stdev[:, 0, :].unsqueeze(1).repeat(1, token_num * self.token_len, 1))
