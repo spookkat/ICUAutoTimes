@@ -8,7 +8,8 @@ data_dict = {
     'm4': Dataset_M4,
     'Solar': Dataset_Solar,
     'tsf': Dataset_TSF,
-    'tsf_icl': Dataset_TSF_ICL
+    'tsf_icl': Dataset_TSF_ICL,
+    'Test': Dataset_Custom
 }
 
 
