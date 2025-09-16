@@ -52,6 +52,11 @@ if __name__ == '__main__':
             root_path='./dataset/Test/',
             data_path='0001_processed.csv',
             size=[seq_len, label_len, pred_len])
+    elif args.dataset == 'Custom':
+        data_set = Dataset_Preprocess(
+            root_path='./dataset/Custom/',
+            data_path='.',
+            size=[seq_len, label_len, pred_len])
 
     data_loader = DataLoader(
         data_set,
