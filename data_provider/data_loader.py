@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 from data_provider.m4 import M4Dataset, M4Meta
 from sklearn.preprocessing import StandardScaler
 from utils.tools import convert_tsf_to_dataframe
+import vitaldb as vdb
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -444,22 +445,78 @@ class Dataset_Preprocess(Dataset):
 
         self.root_path = root_path
         self.data_path = data_path
-        self.__read_data__()
-        self.tot_len = len(self.data_stamp)
+        self.tot_len = self.__read_data__()
+        #self.tot_len = len(self.data_stamp)
 
-    def __read_data__(self):
-        df_raw = pd.read_csv(os.path.join(self.root_path, self.data_path))
-        df_stamp = df_raw[['date']]
+    def convert_vital_to_df(self, file_path):
+        vital_track_names = [
+            'SNUADC/ART',
+            'SNUADC/ECG_II',
+            'SNUADC/ECG_V5',
+            'SNUADC/PLETH',
+            'Primus/CO2',
+            'BIS/EEG1_WAV',
+            'BIS/EEG2_WAV'
+        ]
+        self.vdb_data = vdb.vital_recs(file_path, track_names=vital_track_names, return_timestamp=True, return_datetime=False, return_pandas=True)
+        self.vdb_data = self.vdb_data.fillna(method='ffill', axis=0).fillna(method='bfill', axis=0)
+        self.vdb_data = self.vdb_data.rename(columns={'Time': 'date'})
+        return self.vdb_data
+
+    def __read_file(self, file_path):
+        if file_path.split(".")[-1].lower() == 'csv':
+            self.df_raw = pd.read_csv(file_path)
+        else:
+            self.df_raw = self.convert_vital_to_df(file_path)
+        #df_raw = pd.read_csv(file_path)
+        df_stamp = self.df_raw[['date']]
         df_stamp['date'] = pd.to_datetime(df_stamp.date).apply(str)
         self.data_stamp = df_stamp['date'].values
         self.data_stamp = [str(x) for x in self.data_stamp]
+        return len(self.data_stamp)
 
-    def __get_current_file(self):
+    def __read_folder__(self):
+        if "data_meta.txt" in os.listdir(self.root_path):
+            self.file_len_dict = {}
+            total_length = 0
+            with open(os.path.join(self.root_path, "data_meta.txt"), "r") as data_meta:
+                for line in data_meta:
+                    if line.split()[0].lower() != "total":
+                        file_len = int(line.split()[-1])
+                        #num_train = int(len(file_len) * 0.7)
+                        #num_test = int(file_len * 0.2)
+                        #num_vali = len(file_len) - num_train - num_test
+                        total_length += file_len
+                        self.file_len_dict[line.split()[0]] = (int(line.split()[-1]), int(total_length))
+                # lines = data_meta.readlines()
+                # if lines:
+                #     last_line = lines[-1].strip()
+                #     total_length = int(last_line.split()[-1])
+            
+            data_meta.close()
+
+            self.files_list = list(self.file_len_dict.keys())
+            self.file_len = self.__read_file(os.path.join(self.root_path,
+                                            f"{self.files_list[self._file_idx]}"))
+            self.file_name = self.files_list[self._file_idx].split(".")[0]
+        else:
+            raise Exception("Data Meta unavailable")
         
-        pass
+        return total_length
+    
+    def __read_data__(self):
+        if self.data_path == ".":
+            self._multiple_files = True
+            self._file_idx = 0
+            length = self.__read_folder__()
+        else:
+            length = self.__read_file(os.path.join(self.root_path, self.data_path))
+            self.file_name = self.data_path.split(".")[0]
+        
+        return length
 
-    def __getitem__(self, index):
-        s_begin = index % self.tot_len
+    def __getcurrent__(self, index, length):
+        s_begin = index % length
         s_end = s_begin + self.token_len
         if self.data_set_type not in ['0001_processed']:
             start = datetime.datetime.strptime(self.data_stamp[s_begin], "%Y-%m-%d %H:%M:%S")
@@ -476,5 +533,31 @@ class Dataset_Preprocess(Dataset):
         seq_x_mark = f"This is Time Series from {self.data_stamp[s_begin]} to {end}"
         return seq_x_mark
 
+    def __getitem__(self, index):
+        if self._multiple_files:
+            completed_idx = 0
+            for idx in range(self._file_idx):
+                completed_idx += self.file_len_dict[self.files_list[idx]][-1]
+            
+            row_idx = index - completed_idx
+
+            seq_x_mark= self.__getcurrent__(row_idx, self.file_len)
+
+            if row_idx == (self.file_len - 1):
+                self._file_idx += 1
+                #del self.data_x
+                #del self.data_y
+                del self.data_stamp
+                del self.df_raw
+
+                self.file_name = self.files_list[self._file_idx].split(".")[0]
+                self.file_len = self.__read_file(os.path.join(self.root_path,
+                                                self.files_list[self._file_idx]))
+
+        else:
+            seq_x_mark = self.__getcurrent__(index, self.file_len)
+        return self.file_name, seq_x_mark
+
     def __len__(self):
-        return len(self.data_stamp)
+        #return len(self.data_stamp)
+        return self.tot_len

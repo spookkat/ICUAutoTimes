@@ -11,8 +11,9 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--llm', type=str, default='llama', help='llm name')
     parser.add_argument('--llm_ckp_dir', type=str, default='./llama', help='llm checkpoints dir')
-    parser.add_argument('--dataset', type=str, default='ETTh1', 
+    parser.add_argument('--dataset', type=str, default='ETTh1.csv', 
                         help='dataset to preprocess, options:[ETTh1, electricity, weather, traffic]')
+    parser.add_argument('--dataset_path', type=str, default='./dataset/ETT-small/')
     args = parser.parse_args()
     print(args.dataset)
     
@@ -26,37 +27,42 @@ if __name__ == '__main__':
     label_len = 576
     pred_len = 96
     
-    assert args.dataset in ['ETTh1', 'electricity', 'weather', 'traffic', 'Test']
-    if args.dataset == 'ETTh1':
-        data_set = Dataset_Preprocess(
-            root_path='./dataset/ETT-small/',
-            data_path='ETTh1.csv',
-            size=[seq_len, label_len, pred_len])
-    elif args.dataset == 'electricity':
-        data_set = Dataset_Preprocess(
-            root_path='./dataset/electricity/',
-            data_path='electricity.csv',
-            size=[seq_len, label_len, pred_len])
-    elif args.dataset == 'weather':
-        data_set = Dataset_Preprocess(
-            root_path='./dataset/weather/',
-            data_path='weather.csv',
-            size=[seq_len, label_len, pred_len])
-    elif args.dataset == 'traffic':
-        data_set = Dataset_Preprocess(
-            root_path='./dataset/traffic/',
-            data_path='traffic.csv',
-            size=[seq_len, label_len, pred_len])
-    elif args.dataset == 'Test':
-        data_set = Dataset_Preprocess(
-            root_path='./dataset/Test/',
-            data_path='0001_processed.csv',
-            size=[seq_len, label_len, pred_len])
-    elif args.dataset == 'Custom':
-        data_set = Dataset_Preprocess(
-            root_path='./dataset/Custom/',
-            data_path='.',
-            size=[seq_len, label_len, pred_len])
+    # assert args.dataset in ['ETTh1', 'electricity', 'weather', 'traffic', 'Test']
+    # if args.dataset == 'ETTh1':
+    #     data_set = Dataset_Preprocess(
+    #         root_path='./dataset/ETT-small/',
+    #         data_path='ETTh1.csv',
+    #         size=[seq_len, label_len, pred_len])
+    # elif args.dataset == 'electricity':
+    #     data_set = Dataset_Preprocess(
+    #         root_path='./dataset/electricity/',
+    #         data_path='electricity.csv',
+    #         size=[seq_len, label_len, pred_len])
+    # elif args.dataset == 'weather':
+    #     data_set = Dataset_Preprocess(
+    #         root_path='./dataset/weather/',
+    #         data_path='weather.csv',
+    #         size=[seq_len, label_len, pred_len])
+    # elif args.dataset == 'traffic':
+    #     data_set = Dataset_Preprocess(
+    #         root_path='./dataset/traffic/',
+    #         data_path='traffic.csv',
+    #         size=[seq_len, label_len, pred_len])
+    # elif args.dataset == 'Test':
+    #     data_set = Dataset_Preprocess(
+    #         root_path='./dataset/Test/',
+    #         data_path='0001_processed.csv',
+    #         size=[seq_len, label_len, pred_len])
+    # elif args.dataset == 'Custom':
+    #     data_set = Dataset_Preprocess(
+    #         root_path='./dataset/Custom/',
+    #         data_path='.',
+    #         size=[seq_len, label_len, pred_len])
+    data_set = Dataset_Preprocess(
+                    root_path=args.dataset_path,
+                    data_path=args.dataset,
+                    size=[seq_len, label_len, pred_len])
+
 
     data_loader = DataLoader(
         data_set,
@@ -68,11 +74,20 @@ if __name__ == '__main__':
     from tqdm import tqdm
     print(len(data_set.data_stamp))
     print(data_set.tot_len)
-    save_dir_path = './dataset/'
+    save_dir_path = f"{args.dataset_path}/time_embeddings/"
     output_list = []
-    for idx, data in tqdm(enumerate(data_loader)):
+    previous_filename = ''
+    for idx, file_name, data in tqdm(enumerate(data_loader)):
+        curr_filename = file_name
+        if curr_filename != previous_filename:
+            result = torch.cat(output_list, dim=0)
+            print(result.shape)
+            torch.save(result, save_dir_path + f'/{previous_filename}.pt')
+
         output = model(data)
         output_list.append(output.detach().cpu())
-    result = torch.cat(output_list, dim=0)
-    print(result.shape)
-    torch.save(result, save_dir_path + f'/{args.dataset}.pt')
+        previous_filename = curr_filename
+        
+    # result = torch.cat(output_list, dim=0)
+    # print(result.shape)
+    # torch.save(result, save_dir_path + f'/{args.dataset}.pt')
