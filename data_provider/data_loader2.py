@@ -212,7 +212,7 @@ class Dataset_Vital(Dataset):
             'BIS/EEG1_WAV',
             'BIS/EEG2_WAV'
         ]
-        self.vdb_data = vdb.vital_recs(file_path, track_names=vital_track_names, return_timestamp=True, return_datetime=False, return_pandas=True)
+        self.vdb_data = vdb.vital_recs(file_path, track_names=vital_track_names, return_timestamp=False, return_datetime=True, return_pandas=True)
         self.vdb_data = self.vdb_data.fillna(method='ffill', axis=0).fillna(method='bfill', axis=0)
         self.vdb_data = self.vdb_data.rename(columns={'Time': 'date'})
         return self.vdb_data
