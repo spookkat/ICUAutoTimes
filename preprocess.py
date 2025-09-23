@@ -77,12 +77,14 @@ if __name__ == '__main__':
     save_dir_path = f"{args.dataset_path}/time_embeddings/"
     output_list = []
     previous_filename = ''
-    for idx, file_name, data in tqdm(enumerate(data_loader)):
-        curr_filename = file_name
+    for idx, (file_name, data) in tqdm(enumerate(data_loader)):
+        curr_filename = file_name[0]
+        print(curr_filename)
         if curr_filename != previous_filename:
-            result = torch.cat(output_list, dim=0)
-            print(result.shape)
-            torch.save(result, save_dir_path + f'/{previous_filename}.pt')
+            if len(output_list) != 0:
+                result = torch.cat(output_list, dim=0)
+                #print(result.shape)
+                torch.save(result, save_dir_path + f'/{previous_filename}.pt')
 
         output = model(data)
         output_list.append(output.detach().cpu())

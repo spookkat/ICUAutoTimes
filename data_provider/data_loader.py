@@ -435,7 +435,10 @@ class Dataset_Preprocess(Dataset):
         self.token_len = self.seq_len - self.label_len
         self.token_num = self.seq_len // self.token_len
         self.flag = flag
-        self.data_set_type = data_path.split('.')[0]
+        if data_path == ".":
+            self.data_set_type = "."
+        else:
+            self.data_set_type = data_path.split('.')[0]
         # init
         assert flag in ['train', 'test', 'val']
         type_map = {'train': 0, 'val': 1, 'test': 2}
@@ -458,9 +461,10 @@ class Dataset_Preprocess(Dataset):
             'BIS/EEG1_WAV',
             'BIS/EEG2_WAV'
         ]
-        self.vdb_data = vdb.vital_recs(file_path, track_names=vital_track_names, return_timestamp=True, return_datetime=False, return_pandas=True)
+        self.vdb_data = vdb.vital_recs(file_path, track_names=vital_track_names, return_timestamp=False, return_datetime=True, return_pandas=True)
         self.vdb_data = self.vdb_data.fillna(method='ffill', axis=0).fillna(method='bfill', axis=0)
         self.vdb_data = self.vdb_data.rename(columns={'Time': 'date'})
+        #print(self.vdb_data['date'][0])
         return self.vdb_data
 
     def __read_file(self, file_path):
@@ -518,7 +522,7 @@ class Dataset_Preprocess(Dataset):
     def __getcurrent__(self, index, length):
         s_begin = index % length
         s_end = s_begin + self.token_len
-        if self.data_set_type not in ['0001_processed']:
+        if self.data_set_type not in ['0001_processed','.']:
             start = datetime.datetime.strptime(self.data_stamp[s_begin], "%Y-%m-%d %H:%M:%S")
             if self.data_set_type in ['traffic', 'electricity', 'ETTh1', 'ETTh2']:
                 end = (start + datetime.timedelta(hours=self.token_len-1)).strftime("%Y-%m-%d %H:%M:%S")
@@ -528,6 +532,9 @@ class Dataset_Preprocess(Dataset):
                 end = (start + datetime.timedelta(minutes=15*(self.token_len-1))).strftime("%Y-%m-%d %H:%M:%S")
         else:
             #start = datetime.datetime.strptime(self.data_stamp[s_begin], "%Y-%m-%d %H:%M:%S.%f")
+            # print(self.data_stamp[s_begin])
+            # print(self.file_name)
+            # print(s_begin)
             start = datetime.datetime.fromisoformat(self.data_stamp[s_begin])
             end = (start + datetime.timedelta(microseconds=2000*(self.token_len-1))).strftime("%Y-%m-%d %H:%M:%S.%f%z")
         seq_x_mark = f"This is Time Series from {self.data_stamp[s_begin]} to {end}"
@@ -541,7 +548,7 @@ class Dataset_Preprocess(Dataset):
             
             row_idx = index - completed_idx
 
-            seq_x_mark= self.__getcurrent__(row_idx, self.file_len)
+            seq_x_mark = self.__getcurrent__(row_idx, self.file_len)
 
             if row_idx == (self.file_len - 1):
                 self._file_idx += 1
@@ -556,6 +563,8 @@ class Dataset_Preprocess(Dataset):
 
         else:
             seq_x_mark = self.__getcurrent__(index, self.file_len)
+        
+        #print(self.file_name, seq_x_mark)
         return self.file_name, seq_x_mark
 
     def __len__(self):
