@@ -14,6 +14,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='ETTh1.csv', 
                         help='dataset to preprocess, options:[ETTh1, electricity, weather, traffic]')
     parser.add_argument('--dataset_path', type=str, default='./dataset/ETT-small/')
+    parser.add_argument('--batch_size', type=int, default=1024)
     args = parser.parse_args()
     print(args.dataset)
     
@@ -67,7 +68,7 @@ if __name__ == '__main__':
     data_loader = DataLoader(
         data_set,
         #batch_size=128,
-        batch_size=1024,
+        batch_size=args.batch_size,
         shuffle=False,
     )
 
@@ -77,18 +78,28 @@ if __name__ == '__main__':
     save_dir_path = f"{args.dataset_path}/time_embeddings/"
     output_list = []
     previous_filename = ''
-    for idx, (file_name, data) in tqdm(enumerate(data_loader)):
-        curr_filename = file_name[0]
-        print(curr_filename)
-        if curr_filename != previous_filename:
-            if len(output_list) != 0:
-                result = torch.cat(output_list, dim=0)
-                #print(result.shape)
-                torch.save(result, save_dir_path + f'/{previous_filename}.pt')
 
-        output = model(data)
-        output_list.append(output.detach().cpu())
-        previous_filename = curr_filename
+    print("Starting embedding generation. Press 'CTRL+C' to stop.")
+    for idx, (file_name, data) in tqdm(enumerate(data_loader)):
+        try:
+            curr_filename = file_name[0]
+            print(curr_filename)
+            if curr_filename != previous_filename:
+                if len(output_list) != 0:
+                    result = torch.cat(output_list, dim=0)
+                    #print(result.shape)
+                    torch.save(result, save_dir_path + f'/{previous_filename}.pt')
+                    print(f"Saved embeddings for {previous_filename}")
+                print(f"Starting for file: {curr_filename}")
+
+            output = model(data)
+            output_list.append(output.detach().cpu())
+            previous_filename = curr_filename
+        
+        except KeyboardInterrupt:
+            print("Interrupted")
+            del output_list
+            break
         
     # result = torch.cat(output_list, dim=0)
     # print(result.shape)
