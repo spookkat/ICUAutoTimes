@@ -15,7 +15,7 @@ def calculate_len(file_path, use_pandas=False, track_names=[], header=False):
         load_tracks = track_names
         if len(track_names) == 0:
             load_tracks = None
-        vdb_data = vdb.vital_recs(file_path, track_names=load_tracks, return_timestamp=True, return_datetime=False, return_pandas=True)
+        vdb_data = vdb.vital_recs(file_path, track_names=load_tracks, return_timestamp=False, return_datetime=True, return_pandas=True)
         data_len = len(vdb_data)
         del vdb_data
     
@@ -44,6 +44,8 @@ def create_data_meta(data_path, header=False):
                 total_rows += file_len
                 
                 data_meta.writelines([f"{file} {file_len}\n"])
+
+                print(f"{file} {file_len}")
             
         data_meta.writelines([f"TOTAL {total_rows}"])
 

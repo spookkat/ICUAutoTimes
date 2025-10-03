@@ -83,7 +83,7 @@ if __name__ == '__main__':
     for idx, (file_name, data) in tqdm(enumerate(data_loader)):
         try:
             curr_filename = file_name[0]
-            print(curr_filename)
+            #print(curr_filename)
             if curr_filename != previous_filename:
                 if len(output_list) != 0:
                     result = torch.cat(output_list, dim=0)

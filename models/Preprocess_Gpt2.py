@@ -45,7 +45,7 @@ class Model(nn.Module):
         #     print(len(self.gpt2_tokenizer.tokenize(x_mark_enc[i].strip())))
         #embeddings = torch.squeeze(torch.cat([self.tokenizer(x_mark_enc[i].strip()).unsqueeze(0) for i in range(len(x_mark_enc))], 0))
         embeddings = self.tokenizer(x_mark_enc)
-        print(embeddings.shape)
+        #print(embeddings.shape)
         bs, seq_len, dim = embeddings.shape
         embeddings = embeddings.view(bs, seq_len, dim)
 
