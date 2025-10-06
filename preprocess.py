@@ -6,6 +6,8 @@ from models.Preprocess_Gpt2 import Model as Model_GPT2
 from data_provider.data_loader import Dataset_Preprocess
 from torch.utils.data import DataLoader
 
+import os
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='AutoTimes Preprocess')
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
@@ -76,6 +78,7 @@ if __name__ == '__main__':
     print(len(data_set.data_stamp))
     print(data_set.tot_len)
     save_dir_path = f"{args.dataset_path}/time_embeddings/"
+    os.makedirs(save_dir_path, exist_ok=True)
     output_list = []
     previous_filename = ''
 
