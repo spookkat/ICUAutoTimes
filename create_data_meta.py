@@ -22,7 +22,7 @@ def calculate_len(file_path, use_pandas=False, track_names=[], header=False):
     return data_len
 
 def create_data_meta(data_path, header=False):
-    files_list = sorted(os.listdir(data_path), key=lambda x: int(x.split('.')[0]))
+    files_list = sorted(os.listdir(data_path), key=lambda x: int(x.split('.')[0]) if x.lower() != 'time_embeddings' and x.lower() != 'data_meta.txt' else print(f"skipping {x}"))
 
     vital_track_names = [
             'SNUADC/ART',
@@ -38,7 +38,7 @@ def create_data_meta(data_path, header=False):
 
     with open(f'{data_path}/data_meta.txt', 'w') as data_meta:
         for file in files_list:
-            if file != "data_meta.txt" and file.lower() != 'time_embeddings':
+            if file != "data_meta.txt":
                 file_len = calculate_len(os.path.join(data_path, file), use_pandas=True, track_names=vital_track_names, header=header)
 
                 total_rows += file_len
