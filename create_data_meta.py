@@ -38,7 +38,7 @@ def create_data_meta(data_path, header=False):
 
     with open(f'{data_path}/data_meta.txt', 'w') as data_meta:
         for file in files_list:
-            if file != "data_meta.txt":
+            if file != "data_meta.txt" and len(file.split('.')) > 1:
                 file_len = calculate_len(os.path.join(data_path, file), use_pandas=True, track_names=vital_track_names, header=header)
 
                 total_rows += file_len
