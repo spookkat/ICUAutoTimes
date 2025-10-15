@@ -22,7 +22,7 @@ def calculate_len(file_path, use_pandas=False, track_names=[], header=False):
     return data_len
 
 def create_data_meta(data_path, header=False):
-    files_list = sorted(os.listdir(data_path), key=int)
+    files_list = sorted(os.listdir(data_path), key=lambda x: int(x.split('.')[0]))
 
     vital_track_names = [
             'SNUADC/ART',
