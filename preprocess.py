@@ -93,6 +93,9 @@ if __name__ == '__main__':
                     #print(result.shape)
                     torch.save(result, save_dir_path + f'/{previous_filename}.pt')
                     print(f"Saved embeddings for {previous_filename}")
+                    del result
+                    del output_list
+                    del output
                 print(f"Starting for file: {curr_filename}")
 
             output = model(data)

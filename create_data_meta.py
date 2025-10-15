@@ -22,7 +22,7 @@ def calculate_len(file_path, use_pandas=False, track_names=[], header=False):
     return data_len
 
 def create_data_meta(data_path, header=False):
-    files_list = os.listdir(data_path)
+    files_list = sorted(os.listdir(data_path), key=int)
 
     vital_track_names = [
             'SNUADC/ART',
@@ -48,6 +48,7 @@ def create_data_meta(data_path, header=False):
                 print(f"{file} {file_len}")
             
         data_meta.writelines([f"TOTAL {total_rows}"])
+        print(f"TOTAL {total_rows}")
 
     data_meta.close()
 
