@@ -96,6 +96,7 @@ if __name__ == '__main__':
                     del result
                     del output_list
                     del output
+                    output_list = []
                 print(f"Starting for file: {curr_filename}")
 
             output = model(data)
