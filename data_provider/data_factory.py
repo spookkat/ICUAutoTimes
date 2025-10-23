@@ -1,4 +1,4 @@
-from data_provider.data_loader import Dataset_ETT_hour, Dataset_Custom, Dataset_M4, Dataset_Solar, Dataset_TSF, Dataset_TSF_ICL
+from data_provider.data_loader import Dataset_ETT_hour, Dataset_Custom, Dataset_M4, Dataset_Solar, Dataset_TSF, Dataset_TSF_ICL, Dataset_Vital
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
@@ -9,7 +9,8 @@ data_dict = {
     'Solar': Dataset_Solar,
     'tsf': Dataset_TSF,
     'tsf_icl': Dataset_TSF_ICL,
-    'Test': Dataset_Custom
+    'Test': Dataset_Custom,
+    'Vital': Dataset_Vital,
 }
 
 
