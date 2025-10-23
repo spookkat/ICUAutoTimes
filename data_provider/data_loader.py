@@ -5,8 +5,9 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 from data_provider.m4 import M4Dataset, M4Meta
+#from m4 import M4Dataset, M4Meta
 from sklearn.preprocessing import StandardScaler
-from utils.tools import convert_tsf_to_dataframe
+#from utils.tools import convert_tsf_to_dataframe
 import vitaldb as vdb
 import warnings
 
@@ -164,6 +165,161 @@ class Dataset_Custom(Dataset):
 
     def __len__(self):
         return (len(self.data_x) - self.seq_len - self.pred_len + 1) * self.enc_in
+
+    def inverse_transform(self, data):
+        return self.scaler.inverse_transform(data)
+    
+    
+class Dataset_Vital(Dataset):
+    def __init__(self, root_path, time_embed_path, flag='train', size=None, data_path='ETTh1.csv',
+                 scale=True, seasonal_patterns=None, drop_short=False):
+        self.seq_len = size[0]
+        self.label_len = size[1]
+        self.pred_len = size[2]
+        self.token_len = self.seq_len - self.label_len
+        self.token_num = self.seq_len // self.token_len
+        self.flag = flag
+        # init
+        assert flag in ['train', 'test', 'val']
+        type_map = {'train': 0, 'val': 1, 'test': 2}
+        self.set_type = type_map[flag]
+
+        self._multiple_files = False
+
+        self.scale = scale
+
+        self.root_path = root_path
+        self.data_path = data_path
+        self.time_embed_path = time_embed_path
+        self.tot_len = self.__read_data__()
+        self.enc_in = self.data_x.shape[-1]
+        self.total_index = 0
+        #self.tot_len = len(self.data_x) - self.seq_len - self.pred_len + 1
+
+    def convert_vital_to_df(self, file_path):
+        vital_track_names = [
+            'SNUADC/ART',
+            'SNUADC/ECG_II',
+            'SNUADC/ECG_V5',
+            'SNUADC/PLETH',
+            'Primus/CO2',
+            'BIS/EEG1_WAV',
+            'BIS/EEG2_WAV'
+        ]
+        self.vdb_data = vdb.vital_recs(file_path, track_names=vital_track_names, return_timestamp=False, return_datetime=True, return_pandas=True)
+        self.vdb_data = self.vdb_data.fillna(method='ffill', axis=0).fillna(method='bfill', axis=0)
+        self.vdb_data = self.vdb_data.rename(columns={'Time': 'date'})
+        return self.vdb_data
+    
+    def __read_file(self, file_path):
+        if file_path.split(".")[-1].lower() == 'csv':
+            self.df_raw = pd.read_csv(file_path)
+        else:
+            self.df_raw = self.convert_vital_to_df(file_path)
+        num_train = int(len(self.df_raw) * 0.7)
+        num_test = int(len(self.df_raw) * 0.2)
+        num_vali = len(self.df_raw) - num_train - num_test
+        border1s = [0, num_train - self.seq_len, len(self.df_raw) - num_test - self.seq_len]
+        border2s = [num_train, num_train + num_vali, len(self.df_raw)]
+        border1 = border1s[self.set_type]
+        border2 = border2s[self.set_type]
+
+        cols_data = self.df_raw.columns[1:]
+        df_data = self.df_raw[cols_data]
+
+        if self.scale:
+            train_data = df_data[border1s[0]:border2s[0]]
+            self.scaler.fit(train_data.values)
+            data = self.scaler.transform(df_data.values)
+        else:
+            data = df_data.values
+        data_name = file_path.split('.')[0]
+        if f'{data_name}.pt' in os.listdir(self.time_embed_path):
+            self.data_stamp = torch.load(os.path.join(self.root_path, f'{data_name}.pt'))
+        
+        #self.data_stamp = self.data_stamp[border1:border2]
+        self.data_x = data[border1:border2]
+        self.data_y = data[border1:border2]
+
+        return len(self.data_x) - self.seq_len - self.pred_len + 1
+    
+    def __read_folder__(self):
+        if "data_meta.txt" in os.listdir(self.root_path):
+            self.file_len_dict = {}
+            total_length = 0
+            with open(os.path.join(self.root_path, "data_meta.txt"), "r") as data_meta:
+                for line in data_meta:
+                    if line.split()[0].lower() != "total":
+                        file_len = int(line.split()[-1])
+                        #num_train = int(len(file_len) * 0.7)
+                        num_test = int(file_len * 0.2)
+                        #num_vali = len(file_len) - num_train - num_test
+                        total_length += (file_len - num_test - self.seq_len - self.pred_len + 1)
+                        self.file_len_dict[line.split()[0]] = (int(line.split()[-1]), int(total_length))
+                # lines = data_meta.readlines()
+                # if lines:
+                #     last_line = lines[-1].strip()
+                #     total_length = int(last_line.split()[-1])
+            
+            data_meta.close()
+
+            self.files_list = list(self.file_len_dict.keys())
+            self.file_len = self.__read_file(os.path.join(self.root_path,
+                                            f"{self.files_list[self._file_idx]}"))
+        else:
+            raise Exception("Data Meta unavailable")
+        return total_length
+    
+    def __read_data__(self):
+        self.scaler = StandardScaler()
+        if self.data_path == ".":
+            self._multiple_files = True
+            self._file_idx = 0
+            length = self.__read_folder__()
+        else:
+            length = self.__read_file(os.path.join(self.root_path, self.data_path))
+
+        return length
+
+    def __getcurrent__(self, index, length):
+        feat_id = index // length
+        s_begin = index % length
+        
+        s_end = s_begin + self.seq_len
+        r_begin = s_end - self.label_len
+        r_end = r_begin + self.label_len + self.pred_len
+        seq_x = self.data_x[s_begin:s_end, feat_id:feat_id+1]
+        seq_y = self.data_y[r_begin:r_end, feat_id:feat_id+1]
+        #seq_x_mark = self.data_stamp[s_begin:s_end:self.token_len]
+        #seq_y_mark = self.data_stamp[s_end:r_end:self.token_len]
+        return seq_x, seq_y, 0, 0#seq_x_mark, seq_y_mark
+
+    def __getitem__(self, index):
+        if self._multiple_files:
+            completed_idx = 0
+            for idx in range(self._file_idx):
+                completed_idx += self.file_len_dict[self.files_list[idx]][-1]
+            
+            row_idx = index - completed_idx
+
+            seq_x, seq_y, seq_x_mark, seq_y_mark = self.__getcurrent__(row_idx, self.file_len)
+
+            if row_idx == (self.file_len - 1):
+                self._file_idx += 1
+                del self.data_x
+                del self.data_y
+                del self.data_stamp
+                del self.df_raw
+                self.file_len = self.__read_file(os.path.join(self.root_path,
+                                                self.files_list[self._file_idx]))
+
+        else:
+            seq_x, seq_y, seq_x_mark, seq_y_mark = self.__getcurrent__(index, self.file_len)
+        return seq_x, seq_y, seq_x_mark, seq_y_mark
+
+    def __len__(self):
+        return self.tot_len
+        #return (len(self.data_x) - self.seq_len - self.pred_len + 1) * self.enc_in
 
     def inverse_transform(self, data):
         return self.scaler.inverse_transform(data)
