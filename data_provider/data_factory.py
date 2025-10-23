@@ -43,6 +43,7 @@ def data_provider(args, flag):
     else:
         data_set = Data(
             root_path=args.root_path,
+            time_embed_path=args.time_embed_path,
             data_path=args.data_path,
             flag=flag,
             size=[args.test_seq_len, args.test_label_len, args.test_pred_len],
