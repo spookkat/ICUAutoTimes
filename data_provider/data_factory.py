@@ -33,6 +33,7 @@ def data_provider(args, flag):
     if flag in ['train', 'val']:
         data_set = Data(
             root_path=args.root_path,
+            time_embed_path=args.time_embed_path,
             data_path=args.data_path,
             flag=flag,
             size=[args.seq_len, args.label_len, args.token_len],
