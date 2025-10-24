@@ -121,6 +121,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         if self.args.use_amp:
             scaler = torch.cuda.amp.GradScaler()
 
+        print("Starting Epochs:")
+
         for epoch in range(self.args.train_epochs):
             iter_count = 0
 
@@ -128,9 +130,11 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             count = torch.tensor(0., device=self.device)
             
             self.model.train()
+            print("Starting Batch")
             epoch_time = time.time()
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
                 iter_count += 1
+                print(f"Starting Batch: {i}")
                 model_optim.zero_grad()
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
@@ -148,6 +152,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                     loss = criterion(outputs, batch_y)
                     loss_val += loss
                     count += 1
+                
+                print("Predicted")
                 
                 if (i + 1) % 100 == 0:
                     if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
