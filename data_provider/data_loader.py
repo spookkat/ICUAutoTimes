@@ -296,13 +296,17 @@ class Dataset_Vital(Dataset):
 
     def __getitem__(self, index):
         if self._multiple_files:
+            print("Getting Item")
             completed_idx = 0
             for idx in range(self._file_idx):
                 completed_idx += self.file_len_dict[self.files_list[idx]][-1]
+
+            print("Got completed idx")
             
             row_idx = index - completed_idx
 
             seq_x, seq_y, seq_x_mark, seq_y_mark = self.__getcurrent__(row_idx, self.file_len)
+            print("Got current item")
 
             if row_idx == (self.file_len - 1):
                 self._file_idx += 1
@@ -312,6 +316,8 @@ class Dataset_Vital(Dataset):
                 del self.df_raw
                 self.file_len = self.__read_file(os.path.join(self.root_path,
                                                 self.files_list[self._file_idx]))
+            
+            print("Finalized")
 
         else:
             seq_x, seq_y, seq_x_mark, seq_y_mark = self.__getcurrent__(index, self.file_len)
