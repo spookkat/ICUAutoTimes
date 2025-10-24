@@ -295,6 +295,7 @@ class Dataset_Vital(Dataset):
         return seq_x, seq_y, 0, 0#seq_x_mark, seq_y_mark
 
     def __getitem__(self, index):
+        print("Start getting item")
         if self._multiple_files:
             print("Getting Item")
             completed_idx = 0
