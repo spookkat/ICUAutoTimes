@@ -133,6 +133,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             self.model.train()
 
             count = 0
+            print("Before test loop")
             for batch_x, batch_y, batch_x_mark, batch_y_mark in train_loader:
                 if count < 5:
                     print(batch_x, batch_y, batch_x_mark, batch_y_mark)
