@@ -124,6 +124,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         print("Starting Epochs:")
 
         for epoch in range(self.args.train_epochs):
+            print("Inside epoch loop")
             iter_count = 0
 
             loss_val = torch.tensor(0., device=self.device)
