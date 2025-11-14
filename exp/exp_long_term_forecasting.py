@@ -128,7 +128,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             iter_count = 0
 
             loss_val = torch.tensor(0., device=self.device)
+            print("Created loss val tensor")
             count = torch.tensor(0., device=self.device)
+
+            print("before setting train flag for model")
             
             self.model.train()
 
