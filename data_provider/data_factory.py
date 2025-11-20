@@ -15,7 +15,9 @@ data_dict = {
 
 
 def data_provider(args, flag):
+    print(args.data)
     Data = data_dict[args.data]
+    print(Data)
 
     if flag == 'test':
         shuffle_flag = False
