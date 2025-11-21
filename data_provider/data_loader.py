@@ -213,8 +213,10 @@ class Dataset_Vital(Dataset):
     
     def __read_file(self, file_path):
         if file_path.split(".")[-1].lower() == 'csv':
+            print("Reading CSV")
             self.df_raw = pd.read_csv(file_path)
         else:
+            print("Reading Vital")
             self.df_raw = self.convert_vital_to_df(file_path)
         num_train = int(len(self.df_raw) * 0.7)
         num_test = int(len(self.df_raw) * 0.2)
@@ -245,6 +247,7 @@ class Dataset_Vital(Dataset):
     
     def __read_folder__(self):
         if "data_meta.txt" in os.listdir(self.root_path):
+            print("Reading MetaData")
             self.file_len_dict = {}
             total_length = 0
             with open(os.path.join(self.root_path, "data_meta.txt"), "r") as data_meta:
@@ -263,9 +266,12 @@ class Dataset_Vital(Dataset):
             
             data_meta.close()
 
+            print(f"Total: {total_length}")
+
             self.files_list = list(self.file_len_dict.keys())
             self.file_len = self.__read_file(os.path.join(self.root_path,
                                             f"{self.files_list[self._file_idx]}"))
+            print("Finished reading folder")
         else:
             raise Exception("Data Meta unavailable")
         return total_length
@@ -275,6 +281,7 @@ class Dataset_Vital(Dataset):
         if self.data_path == ".":
             self._multiple_files = True
             self._file_idx = 0
+            print("Reading Folder")
             length = self.__read_folder__()
         else:
             length = self.__read_file(os.path.join(self.root_path, self.data_path))
