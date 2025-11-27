@@ -272,6 +272,7 @@ class Dataset_Vital(Dataset):
             self.file_len = self.__read_file(os.path.join(self.root_path,
                                             f"{self.files_list[self._file_idx]}"))
             print("Finished reading folder")
+            print(f"Loaded First File, size: {self.file_len}")
         else:
             raise Exception("Data Meta unavailable")
         return total_length
