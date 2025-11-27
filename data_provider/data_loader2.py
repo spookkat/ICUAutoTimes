@@ -178,7 +178,7 @@ class Dataset_Custom(Dataset):
 
 
 class Dataset_Vital(Dataset):
-    def __init__(self, root_path, flag='train', size=None, data_path='ETTh1.csv',
+    def __init__(self, root_path, time_embed_path, flag='train', size=None, data_path='ETTh1.csv',
                  scale=True, seasonal_patterns=None, drop_short=False):
         self.seq_len = size[0]
         self.label_len = size[1]
@@ -197,6 +197,7 @@ class Dataset_Vital(Dataset):
 
         self.root_path = root_path
         self.data_path = data_path
+        self.time_embed_path = time_embed_path
         self.tot_len = self.__read_data__()
         self.enc_in = self.data_x.shape[-1]
         self.total_index = 0
@@ -219,8 +220,10 @@ class Dataset_Vital(Dataset):
     
     def __read_file(self, file_path):
         if file_path.split(".")[-1].lower() == 'csv':
+            print("Reading CSV")
             self.df_raw = pd.read_csv(file_path)
         else:
+            print("Reading Vital")
             self.df_raw = self.convert_vital_to_df(file_path)
         num_train = int(len(self.df_raw) * 0.7)
         num_test = int(len(self.df_raw) * 0.2)
@@ -240,7 +243,7 @@ class Dataset_Vital(Dataset):
         else:
             data = df_data.values
         data_name = file_path.split('.')[0]
-        if f'{data_name}.pt' in os.listdir(self.root_path):
+        if f'{data_name}.pt' in os.listdir(self.time_embed_path):
             self.data_stamp = torch.load(os.path.join(self.root_path, f'{data_name}.pt'))
         
         #self.data_stamp = self.data_stamp[border1:border2]
@@ -251,6 +254,7 @@ class Dataset_Vital(Dataset):
     
     def __read_folder__(self):
         if "data_meta.txt" in os.listdir(self.root_path):
+            print("Reading MetaData")
             self.file_len_dict = {}
             total_length = 0
             with open(os.path.join(self.root_path, "data_meta.txt"), "r") as data_meta:
@@ -269,9 +273,12 @@ class Dataset_Vital(Dataset):
             
             data_meta.close()
 
+            print(f"Total: {total_length}")
+
             self.files_list = list(self.file_len_dict.keys())
             self.file_len = self.__read_file(os.path.join(self.root_path,
                                             f"{self.files_list[self._file_idx]}"))
+            print("Finished reading folder")
         else:
             raise Exception("Data Meta unavailable")
         return total_length
@@ -281,6 +288,7 @@ class Dataset_Vital(Dataset):
         if self.data_path == ".":
             self._multiple_files = True
             self._file_idx = 0
+            print("Reading Folder")
             length = self.__read_folder__()
         else:
             length = self.__read_file(os.path.join(self.root_path, self.data_path))
@@ -301,14 +309,19 @@ class Dataset_Vital(Dataset):
         return seq_x, seq_y, 0, 0#seq_x_mark, seq_y_mark
 
     def __getitem__(self, index):
+        print("Start getting item")
         if self._multiple_files:
+            print("Getting Item")
             completed_idx = 0
             for idx in range(self._file_idx):
                 completed_idx += self.file_len_dict[self.files_list[idx]][-1]
+
+            print("Got completed idx")
             
             row_idx = index - completed_idx
 
             seq_x, seq_y, seq_x_mark, seq_y_mark = self.__getcurrent__(row_idx, self.file_len)
+            print("Got current item")
 
             if row_idx == (self.file_len - 1):
                 self._file_idx += 1
@@ -318,6 +331,8 @@ class Dataset_Vital(Dataset):
                 del self.df_raw
                 self.file_len = self.__read_file(os.path.join(self.root_path,
                                                 self.files_list[self._file_idx]))
+            
+            print("Finalized")
 
         else:
             seq_x, seq_y, seq_x_mark, seq_y_mark = self.__getcurrent__(index, self.file_len)
