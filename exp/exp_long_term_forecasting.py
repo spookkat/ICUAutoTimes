@@ -12,6 +12,8 @@ import numpy as np
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 
+import sys
+
 warnings.filterwarnings('ignore')
 
 
@@ -123,98 +125,103 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
         print("Starting Epochs:")
 
-        for epoch in range(self.args.train_epochs):
-            print("Inside epoch loop")
-            iter_count = 0
+        try:
+            for epoch in range(self.args.train_epochs):
+                print("Inside epoch loop")
+                iter_count = 0
 
-            loss_val = torch.tensor(0., device=self.device)
-            print("Created loss val tensor")
-            count = torch.tensor(0., device=self.device)
+                loss_val = torch.tensor(0., device=self.device)
+                print("Created loss val tensor")
+                count = torch.tensor(0., device=self.device)
 
-            print("before setting train flag for model")
-            
-            self.model.train()
+                print("before setting train flag for model")
+                
+                self.model.train()
 
-            print(train_loader)
-            print("Try next")
-            print(next(iter(train_loader)))
-            
+                print(train_loader)
+                print("Try next")
+                print(next(iter(train_loader)))
+                
 
-            count = 0
-            print("Before test loop")
-            for batch_x, batch_y, batch_x_mark, batch_y_mark in train_loader:
-                if count < 5:
-                    print(batch_x, batch_y, batch_x_mark, batch_y_mark)
-                    count += 1
-                else:
-                    break
-            print("Starting Batch")
-            epoch_time = time.time()
-            for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
-                iter_count += 1
-                print(f"Starting Batch: {i}")
-                model_optim.zero_grad()
-                batch_x = batch_x.float().to(self.device)
-                batch_y = batch_y.float().to(self.device)
-                batch_x_mark = batch_x_mark.float().to(self.device)
-                batch_y_mark = batch_y_mark.float().to(self.device)
+                count = 0
+                print("Before test loop")
+                for batch_x, batch_y, batch_x_mark, batch_y_mark in train_loader:
+                    if count < 5:
+                        print(batch_x, batch_y, batch_x_mark, batch_y_mark)
+                        count += 1
+                    else:
+                        break
+                print("Starting Batch")
+                epoch_time = time.time()
+                for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
+                    iter_count += 1
+                    print(f"Starting Batch: {i}")
+                    model_optim.zero_grad()
+                    batch_x = batch_x.float().to(self.device)
+                    batch_y = batch_y.float().to(self.device)
+                    batch_x_mark = batch_x_mark.float().to(self.device)
+                    batch_y_mark = batch_y_mark.float().to(self.device)
 
-                if self.args.use_amp:
-                    with torch.cuda.amp.autocast():
+                    if self.args.use_amp:
+                        with torch.cuda.amp.autocast():
+                            outputs = self.model(batch_x, batch_x_mark, None, batch_y_mark)
+                            loss = criterion(outputs, batch_y)                        
+                            loss_val += loss
+                            count += 1
+                    else:
                         outputs = self.model(batch_x, batch_x_mark, None, batch_y_mark)
-                        loss = criterion(outputs, batch_y)                        
+                        loss = criterion(outputs, batch_y)
                         loss_val += loss
                         count += 1
-                else:
-                    outputs = self.model(batch_x, batch_x_mark, None, batch_y_mark)
-                    loss = criterion(outputs, batch_y)
-                    loss_val += loss
-                    count += 1
-                
-                print("Predicted")
-                
-                if (i + 1) % 100 == 0:
+                    
+                    print("Predicted")
+                    
+                    if (i + 1) % 100 == 0:
+                        if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
+                            print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
+                            speed = (time.time() - time_now) / iter_count
+                            left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
+                            print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
+                            iter_count = 0
+                            time_now = time.time()
+
+                    if self.args.use_amp:
+                        scaler.scale(loss).backward()
+                        scaler.step(model_optim)
+                        scaler.update()
+                    else:
+                        loss.backward()
+                        model_optim.step()
+                if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
+                    print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))   
+                if self.args.use_multi_gpu:
+                    dist.barrier()   
+                    dist.all_reduce(loss_val, op=dist.ReduceOp.SUM)
+                    dist.all_reduce(count, op=dist.ReduceOp.SUM)      
+                train_loss = loss_val.item() / count.item()
+
+                vali_loss = self.vali(vali_data, vali_loader, criterion)
+                test_loss = self.vali(test_data, test_loader, criterion, is_test=True)
+                if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
+                    print("Epoch: {}, Steps: {} | Train Loss: {:.7f} Vali Loss: {:.7f} Test Loss: {:.7f}".format(
+                        epoch + 1, train_steps, train_loss, vali_loss, test_loss))
+                early_stopping(vali_loss, self.model, path)
+                if early_stopping.early_stop:
                     if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
-                        print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
-                        speed = (time.time() - time_now) / iter_count
-                        left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
-                        print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
-                        iter_count = 0
-                        time_now = time.time()
-
-                if self.args.use_amp:
-                    scaler.scale(loss).backward()
-                    scaler.step(model_optim)
-                    scaler.update()
+                        print("Early stopping")
+                    break
+                if self.args.cosine:
+                    scheduler.step()
+                    if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
+                        print("lr = {:.10f}".format(model_optim.param_groups[0]['lr']))
                 else:
-                    loss.backward()
-                    model_optim.step()
-            if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
-                print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))   
-            if self.args.use_multi_gpu:
-                dist.barrier()   
-                dist.all_reduce(loss_val, op=dist.ReduceOp.SUM)
-                dist.all_reduce(count, op=dist.ReduceOp.SUM)      
-            train_loss = loss_val.item() / count.item()
+                    adjust_learning_rate(model_optim, epoch + 1, self.args)
+                if self.args.use_multi_gpu:
+                    train_loader.sampler.set_epoch(epoch + 1)
 
-            vali_loss = self.vali(vali_data, vali_loader, criterion)
-            test_loss = self.vali(test_data, test_loader, criterion, is_test=True)
-            if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
-                print("Epoch: {}, Steps: {} | Train Loss: {:.7f} Vali Loss: {:.7f} Test Loss: {:.7f}".format(
-                    epoch + 1, train_steps, train_loss, vali_loss, test_loss))
-            early_stopping(vali_loss, self.model, path)
-            if early_stopping.early_stop:
-                if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
-                    print("Early stopping")
-                break
-            if self.args.cosine:
-                scheduler.step()
-                if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
-                    print("lr = {:.10f}".format(model_optim.param_groups[0]['lr']))
-            else:
-                adjust_learning_rate(model_optim, epoch + 1, self.args)
-            if self.args.use_multi_gpu:
-                train_loader.sampler.set_epoch(epoch + 1)
+        except KeyboardInterrupt:
+            raise Exception("Stopping")
+            sys.exit(1)
                 
         best_model_path = path + '/' + 'checkpoint.pth'
         if self.args.use_multi_gpu:
