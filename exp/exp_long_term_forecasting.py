@@ -111,9 +111,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         print(train_data)
 
         print(train_data.__getitem__(0))
-        print(train_data.__getitem__(0).shape)
+        print(len(train_data))
+        print(train_data.__getitem__(0)[0].shape, train_data.__getitem__(0)[1].shape)
         print(train_data.__getitem__(100))
-        print(train_data.__getitem__(100).shape)
+        print(train_data.__getitem__(100)[0].shape, train_data.__getitem__(100)[1].shape)
 
         path = os.path.join(self.args.checkpoints, setting)
         if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
