@@ -107,6 +107,14 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         vali_data, vali_loader = self._get_data(flag='val')
         test_data, test_loader = self._get_data(flag='test')
 
+        print("Printing loaded training data")
+        print(train_data)
+
+        print(train_data.__getitem__(0))
+        print(train_data.__getitem__(0).shape)
+        print(train_data.__getitem__(100))
+        print(train_data.__getitem__(100).shape)
+
         path = os.path.join(self.args.checkpoints, setting)
         if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
             if not os.path.exists(path):
@@ -139,6 +147,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 self.model.train()
 
                 print(train_loader)
+
+
                 print("Try next")
                 print(next(iter(train_loader)))
                 
