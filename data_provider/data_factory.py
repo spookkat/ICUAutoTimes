@@ -28,7 +28,8 @@ def data_provider(args, flag):
         drop_last = False
         batch_size = args.batch_size 
     else:
-        shuffle_flag = True
+        #shuffle_flag = True
+        shuffle_flag = False
         drop_last = args.drop_last
         batch_size = args.batch_size
 
