@@ -298,9 +298,9 @@ class Dataset_Vital(Dataset):
         r_end = r_begin + self.label_len + self.pred_len
         seq_x = self.data_x[s_begin:s_end, feat_id:feat_id+1]
         seq_y = self.data_y[r_begin:r_end, feat_id:feat_id+1]
-        #seq_x_mark = self.data_stamp[s_begin:s_end:self.token_len]
-        #seq_y_mark = self.data_stamp[s_end:r_end:self.token_len]
-        return seq_x, seq_y, 0, 0#seq_x_mark, seq_y_mark
+        seq_x_mark = self.data_stamp[s_begin:s_end:self.token_len]
+        seq_y_mark = self.data_stamp[s_end:r_end:self.token_len]
+        return seq_x, seq_y, seq_x_mark, seq_y_mark
 
     def __getitem__(self, index):
         print("Start getting item")

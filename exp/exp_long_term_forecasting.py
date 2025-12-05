@@ -147,21 +147,21 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 
                 self.model.train()
 
-                print(train_loader)
+                # print(train_loader)
 
 
-                print("Try next")
-                print(next(iter(train_loader)))
+                # print("Try next")
+                # print(next(iter(train_loader)))
                 
 
-                count = 0
-                print("Before test loop")
-                for batch_x, batch_y, batch_x_mark, batch_y_mark in train_loader:
-                    if count < 5:
-                        print(batch_x, batch_y, batch_x_mark, batch_y_mark)
-                        count += 1
-                    else:
-                        break
+                # count = 0
+                # print("Before test loop")
+                # for batch_x, batch_y, batch_x_mark, batch_y_mark in train_loader:
+                #     if count < 5:
+                #         print(batch_x, batch_y, batch_x_mark, batch_y_mark)
+                #         count += 1
+                #     else:
+                #         break
                 print("Starting Batch")
                 epoch_time = time.time()
                 for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
