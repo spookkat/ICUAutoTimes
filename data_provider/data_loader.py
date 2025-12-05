@@ -236,6 +236,7 @@ class Dataset_Vital(Dataset):
         else:
             data = df_data.values
         data_name = file_path.split('.')[0]
+        print(data_name)
         print(os.listdir(self.time_embed_path))
         if f'{data_name}.pt' in os.listdir(self.time_embed_path):
             print("Found time embeddings")
