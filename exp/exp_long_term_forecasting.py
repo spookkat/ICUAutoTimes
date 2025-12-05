@@ -166,7 +166,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 epoch_time = time.time()
                 for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
                     iter_count += 1
-                    print(f"Starting Batch: {i}")
+                    #print(f"Starting Batch: {i}")
                     model_optim.zero_grad()
                     batch_x = batch_x.float().to(self.device)
                     batch_y = batch_y.float().to(self.device)
@@ -185,7 +185,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                         loss_val += loss
                         count += 1
                     
-                    print("Predicted")
+                    #print("Predicted")
                     
                     if (i + 1) % 100 == 0:
                         if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
