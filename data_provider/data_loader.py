@@ -240,7 +240,7 @@ class Dataset_Vital(Dataset):
         print(os.listdir(self.time_embed_path))
         if f'{data_name}.pt' in os.listdir(self.time_embed_path):
             print("Found time embeddings")
-            self.data_stamp = torch.load(os.path.join(self.root_path, f'{data_name}.pt'))
+            self.data_stamp = torch.load(os.path.join(self.time_embed_path, f'{data_name}.pt'))
         
         self.data_stamp = self.data_stamp[border1:border2]
         self.data_x = data[border1:border2]
