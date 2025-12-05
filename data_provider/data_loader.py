@@ -236,7 +236,9 @@ class Dataset_Vital(Dataset):
         else:
             data = df_data.values
         data_name = file_path.split('.')[0]
+        print(os.listdir(self.time_embed_path))
         if f'{data_name}.pt' in os.listdir(self.time_embed_path):
+            print("Found time embeddings")
             self.data_stamp = torch.load(os.path.join(self.root_path, f'{data_name}.pt'))
         
         self.data_stamp = self.data_stamp[border1:border2]
