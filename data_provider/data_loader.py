@@ -235,7 +235,7 @@ class Dataset_Vital(Dataset):
             data = self.scaler.transform(df_data.values)
         else:
             data = df_data.values
-        data_name = file_path.split('.')[0]
+        data_name = file_path.split('/')[-1].split('.')[0]
         print(data_name)
         print(os.listdir(self.time_embed_path))
         if f'{data_name}.pt' in os.listdir(self.time_embed_path):
