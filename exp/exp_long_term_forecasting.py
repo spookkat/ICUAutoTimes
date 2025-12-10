@@ -203,6 +203,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                     else:
                         loss.backward()
                         model_optim.step()
+
+                    del batch_x, batch_x_mark, batch_y, batch_y_mark, outputs, loss
+                    
                 if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
                     print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))   
                 if self.args.use_multi_gpu:
