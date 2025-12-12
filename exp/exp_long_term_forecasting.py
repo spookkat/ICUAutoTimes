@@ -107,14 +107,14 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         vali_data, vali_loader = self._get_data(flag='val')
         test_data, test_loader = self._get_data(flag='test')
 
-        print("Printing loaded training data")
-        print(train_data)
+        # print("Printing loaded training data")
+        # print(train_data)
 
-        print(train_data.__getitem__(0))
-        print(len(train_data))
-        print(train_data.__getitem__(0)[0].shape, train_data.__getitem__(0)[1].shape)
-        print(train_data.__getitem__(100))
-        print(train_data.__getitem__(100)[0].shape, train_data.__getitem__(100)[1].shape)
+        # print(train_data.__getitem__(0))
+        # print(len(train_data))
+        # print(train_data.__getitem__(0)[0].shape, train_data.__getitem__(0)[1].shape)
+        # print(train_data.__getitem__(100))
+        # print(train_data.__getitem__(100)[0].shape, train_data.__getitem__(100)[1].shape)
 
         path = os.path.join(self.args.checkpoints, setting)
         if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
@@ -136,14 +136,14 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
         try:
             for epoch in range(self.args.train_epochs):
-                print("Inside epoch loop")
+                #print("Inside epoch loop")
                 iter_count = 0
 
                 loss_val = torch.tensor(0., device=self.device)
-                print("Created loss val tensor")
+                #print("Created loss val tensor")
                 count = torch.tensor(0., device=self.device)
 
-                print("before setting train flag for model")
+                #print("before setting train flag for model")
                 
                 self.model.train()
 
@@ -162,7 +162,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 #         count += 1
                 #     else:
                 #         break
-                print("Starting Batch")
+                print("Starting Batches")
                 epoch_time = time.time()
                 for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
                     iter_count += 1
@@ -204,7 +204,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                         loss.backward()
                         model_optim.step()
 
-                    del batch_x, batch_x_mark, batch_y, batch_y_mark, outputs, loss
+                    del batch_x, batch_x_mark, batch_y, batch_y_mark, outputs
+                    train_data.cleanup_variables()
                     
                 if (self.args.use_multi_gpu and self.args.local_rank == 0) or not self.args.use_multi_gpu:
                     print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))   

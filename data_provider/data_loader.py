@@ -299,11 +299,11 @@ class Dataset_Vital(Dataset):
         s_end = s_begin + self.seq_len
         r_begin = s_end - self.label_len
         r_end = r_begin + self.label_len + self.pred_len
-        seq_x = self.data_x[s_begin:s_end, feat_id:feat_id+1]
-        seq_y = self.data_y[r_begin:r_end, feat_id:feat_id+1]
-        seq_x_mark = self.data_stamp[s_begin:s_end:self.token_len]
-        seq_y_mark = self.data_stamp[s_end:r_end:self.token_len]
-        return seq_x, seq_y, seq_x_mark, seq_y_mark
+        self.seq_x = self.data_x[s_begin:s_end, feat_id:feat_id+1]
+        self.seq_y = self.data_y[r_begin:r_end, feat_id:feat_id+1]
+        self.seq_x_mark = self.data_stamp[s_begin:s_end:self.token_len]
+        self.seq_y_mark = self.data_stamp[s_end:r_end:self.token_len]
+        return self.seq_x, self.seq_y, self.seq_x_mark, self.seq_y_mark
 
     def __getitem__(self, index):
         #print("Start getting item")
@@ -326,6 +326,7 @@ class Dataset_Vital(Dataset):
                 del self.data_y
                 del self.data_stamp
                 del self.df_raw
+                del self.vdb_data
                 self.file_len = self.__read_file(os.path.join(self.root_path,
                                                 self.files_list[self._file_idx]))
             
@@ -338,6 +339,9 @@ class Dataset_Vital(Dataset):
     def __len__(self):
         return self.tot_len
         #return (len(self.data_x) - self.seq_len - self.pred_len + 1) * self.enc_in
+
+    def cleanup_variables(self):
+        del self.seq_x, self.seq_y, self.seq_x_mark, self.seq_y_mark
 
     def inverse_transform(self, data):
         return self.scaler.inverse_transform(data)
